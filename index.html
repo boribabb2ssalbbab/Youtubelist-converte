@@ -1,249 +1,718 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TubeToMusic - AI Playlist Converter</title>
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #09090b; color: #fafafa; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TubeToMusic - Convert YouTube to Playlists</title>
+  <meta name="description" content="Extract and sync music from YouTube videos to your favorite streaming platforms">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            background: '#0f0f14',
+            foreground: '#fafafa',
+            card: '#1a1a22',
+            'card-foreground': '#fafafa',
+            primary: '#1db954',
+            'primary-foreground': '#0a1f0f',
+            secondary: '#252530',
+            'secondary-foreground': '#d4d4d4',
+            muted: '#2a2a35',
+            'muted-foreground': '#a1a1aa',
+            border: '#3a3a45',
+            input: '#252530',
+            ring: '#1db954',
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background-color: #0f0f14;
+      color: #fafafa;
+      min-height: 100vh;
+    }
+    
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #1a1a22;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #3a3a45;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #4a4a55;
+    }
+    
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes scaleIn {
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    
+    @keyframes checkmark {
+      0% { stroke-dashoffset: 100; }
+      100% { stroke-dashoffset: 0; }
+    }
+    
+    @keyframes progressBar {
+      from { width: 0%; }
+      to { width: 100%; }
+    }
+    
+    .animate-fade-in {
+      animation: fadeIn 0.5s ease-out forwards;
+    }
+    
+    .animate-scale-in {
+      animation: scaleIn 0.4s ease-out forwards;
+    }
+    
+    .animate-pulse {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    
+    .animate-spin {
+      animation: spin 1s linear infinite;
+    }
+    
+    .progress-animate {
+      animation: progressBar 2s ease-out forwards;
+    }
+    
+    /* Step transitions */
+    .step-container {
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    
+    .step-hidden {
+      opacity: 0;
+      transform: translateY(20px);
+      pointer-events: none;
+      position: absolute;
+      visibility: hidden;
+    }
+    
+    .step-visible {
+      opacity: 1;
+      transform: translateY(0);
+      visibility: visible;
+    }
+    
+    /* Track hover effect */
+    .track-item:hover {
+      background-color: #252530;
+    }
+    
+    .track-item:hover .play-overlay {
+      opacity: 1;
+    }
+    
+    .play-overlay {
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+    
+    /* Checkbox styles */
+    .custom-checkbox {
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border: 2px solid #3a3a45;
+      border-radius: 4px;
+      background: transparent;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.2s ease;
+    }
+    
+    .custom-checkbox:checked {
+      background: #1db954;
+      border-color: #1db954;
+    }
+    
+    .custom-checkbox:checked::after {
+      content: '';
+      position: absolute;
+      left: 5px;
+      top: 1px;
+      width: 6px;
+      height: 11px;
+      border: solid #0a1f0f;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+    
+    /* Button hover effects */
+    .btn-primary {
+      background: #1db954;
+      color: #0a1f0f;
+      transition: all 0.2s ease;
+    }
+    
+    .btn-primary:hover:not(:disabled) {
+      background: #1ed760;
+      transform: scale(1.02);
+    }
+    
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .btn-secondary {
+      background: #252530;
+      color: #fafafa;
+      transition: all 0.2s ease;
+    }
+    
+    .btn-secondary:hover {
+      background: #2a2a35;
+    }
+    
+    /* Input focus */
+    .input-field:focus {
+      outline: none;
+      border-color: #1db954;
+      box-shadow: 0 0 0 3px rgba(29, 185, 84, 0.2);
+    }
+    
+    /* Success checkmark */
+    .checkmark-circle {
+      stroke-dasharray: 166;
+      stroke-dashoffset: 166;
+      animation: checkmark 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+    }
+    
+    .checkmark-check {
+      stroke-dasharray: 48;
+      stroke-dashoffset: 48;
+      animation: checkmark 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.4s forwards;
+    }
+  </style>
 </head>
 <body>
-    <div id="root"></div>
+  <div class="min-h-screen bg-background">
+    <!-- Header -->
+    <header class="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-50">
+      <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
+            <i data-lucide="music" class="w-5 h-5 text-primary-foreground"></i>
+          </div>
+          <span class="text-xl font-bold text-foreground">TubeToMusic</span>
+        </div>
+        
+        <!-- Step Indicator -->
+        <div class="flex items-center gap-2">
+          <div id="step-1-indicator" class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-sm font-semibold text-primary-foreground">1</div>
+            <span class="text-sm text-foreground hidden sm:inline">Search</span>
+          </div>
+          <div class="w-8 h-px bg-border"></div>
+          <div id="step-2-indicator" class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-sm font-semibold text-muted-foreground transition-colors" id="step-2-circle">2</div>
+            <span class="text-sm text-muted-foreground hidden sm:inline transition-colors" id="step-2-text">Select</span>
+          </div>
+          <div class="w-8 h-px bg-border"></div>
+          <div id="step-3-indicator" class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-sm font-semibold text-muted-foreground transition-colors" id="step-3-circle">3</div>
+            <span class="text-sm text-muted-foreground hidden sm:inline transition-colors" id="step-3-text">Sync</span>
+          </div>
+        </div>
+      </div>
+    </header>
 
-    <script type="text/babel">
-        const { useState } = React;
+    <main class="max-w-4xl mx-auto px-4 py-8 relative">
+      <!-- Step 1: Search -->
+      <div id="step-1" class="step-container step-visible">
+        <div class="text-center mb-12 animate-fade-in">
+          <h1 class="text-4xl md:text-5xl font-bold text-foreground mb-4 text-balance">
+            Convert YouTube to <span class="text-primary">Playlists</span>
+          </h1>
+          <p class="text-lg text-muted-foreground max-w-2xl mx-auto text-pretty">
+            Paste any YouTube video link and we&apos;ll extract all the music tracks, 
+            ready to sync to your favorite streaming platform.
+          </p>
+        </div>
+        
+        <div class="bg-card rounded-2xl p-6 md:p-8 border border-border mb-8 animate-scale-in" style="animation-delay: 0.1s;">
+          <div class="flex flex-col sm:flex-row gap-4">
+            <div class="flex-1 relative">
+              <i data-lucide="youtube" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground"></i>
+              <input 
+                type="text" 
+                id="youtube-url" 
+                placeholder="Paste YouTube URL here..."
+                class="w-full bg-input border border-border rounded-xl py-4 pl-12 pr-4 text-foreground placeholder:text-muted-foreground input-field"
+              >
+            </div>
+            <button 
+              id="analyze-btn"
+              class="btn-primary px-8 py-4 rounded-xl font-semibold flex items-center justify-center gap-2 min-w-[140px]"
+            >
+              <i data-lucide="search" class="w-5 h-5" id="search-icon"></i>
+              <i data-lucide="loader-2" class="w-5 h-5 animate-spin hidden" id="loading-icon"></i>
+              <span id="analyze-text">Analyze</span>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Features -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 animate-fade-in" style="animation-delay: 0.2s;">
+          <div class="bg-card/50 rounded-xl p-5 border border-border/50">
+            <div class="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center mb-3">
+              <i data-lucide="sparkles" class="w-5 h-5 text-primary"></i>
+            </div>
+            <h3 class="font-semibold text-foreground mb-1">AI-Powered Detection</h3>
+            <p class="text-sm text-muted-foreground">Advanced algorithms identify songs with high accuracy</p>
+          </div>
+          <div class="bg-card/50 rounded-xl p-5 border border-border/50">
+            <div class="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center mb-3">
+              <i data-lucide="zap" class="w-5 h-5 text-primary"></i>
+            </div>
+            <h3 class="font-semibold text-foreground mb-1">Instant Sync</h3>
+            <p class="text-sm text-muted-foreground">One-click export to YouTube Music playlists</p>
+          </div>
+          <div class="bg-card/50 rounded-xl p-5 border border-border/50">
+            <div class="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center mb-3">
+              <i data-lucide="shield-check" class="w-5 h-5 text-primary"></i>
+            </div>
+            <h3 class="font-semibold text-foreground mb-1">Secure & Private</h3>
+            <p class="text-sm text-muted-foreground">Your data is never stored or shared</p>
+          </div>
+        </div>
+      </div>
 
-        const mockTracks = [
-            { id: "1", title: "Blinding Lights", artist: "The Weeknd", duration: "3:20", cover: "https://picsum.photos/seed/track1/80/80", selected: true },
-            { id: "2", title: "Levitating", artist: "Dua Lipa", duration: "3:23", cover: "https://picsum.photos/seed/track2/80/80", selected: true },
-            { id: "3", title: "Save Your Tears", artist: "The Weeknd", duration: "3:35", cover: "https://picsum.photos/seed/track3/80/80", selected: true },
-            { id: "4", title: "Peaches", artist: "Justin Bieber", duration: "3:18", cover: "https://picsum.photos/seed/track4/80/80", selected: false },
-            { id: "5", title: "Stay", artist: "The Kid LAROI, Justin Bieber", duration: "2:21", cover: "https://picsum.photos/seed/track5/80/80", selected: true },
-            { id: "6", title: "Good 4 U", artist: "Olivia Rodrigo", duration: "2:58", cover: "https://picsum.photos/seed/track6/80/80", selected: true }
-        ];
+      <!-- Step 2: Select Tracks -->
+      <div id="step-2" class="step-container step-hidden">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h2 class="text-2xl font-bold text-foreground mb-1">Detected Tracks</h2>
+            <p class="text-muted-foreground">Select the songs you want to add to your playlist</p>
+          </div>
+          <button id="back-btn" class="btn-secondary px-4 py-2 rounded-lg flex items-center gap-2 text-sm">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i>
+            Back
+          </button>
+        </div>
+        
+        <div class="bg-card rounded-2xl border border-border overflow-hidden mb-6">
+          <!-- Header -->
+          <div class="flex items-center justify-between px-6 py-4 border-b border-border bg-secondary/30">
+            <div class="flex items-center gap-3">
+              <input type="checkbox" id="select-all" class="custom-checkbox">
+              <label for="select-all" class="text-sm text-muted-foreground cursor-pointer">Select All</label>
+            </div>
+            <span class="text-sm text-muted-foreground" id="selected-count">0 of 6 selected</span>
+          </div>
+          
+          <!-- Track List -->
+          <div id="track-list" class="divide-y divide-border">
+            <!-- Tracks will be inserted here -->
+          </div>
+        </div>
+        
+        <!-- Sync Button -->
+        <div class="flex flex-col items-center gap-4">
+          <button 
+            id="sync-btn" 
+            class="btn-primary px-8 py-4 rounded-xl font-semibold flex items-center gap-3 disabled:opacity-50"
+            disabled
+          >
+            <i data-lucide="upload-cloud" class="w-5 h-5" id="sync-icon"></i>
+            <i data-lucide="loader-2" class="w-5 h-5 animate-spin hidden" id="sync-loading-icon"></i>
+            <span id="sync-text">Sync to YouTube Music</span>
+          </button>
+          
+          <!-- Progress Bar -->
+          <div id="progress-container" class="w-full max-w-md hidden">
+            <div class="h-2 bg-muted rounded-full overflow-hidden">
+              <div id="progress-bar" class="h-full bg-primary rounded-full" style="width: 0%"></div>
+            </div>
+            <p class="text-center text-sm text-muted-foreground mt-2" id="progress-text">Syncing tracks...</p>
+          </div>
+        </div>
+      </div>
 
-        function TubeToMusic() {
-            const [step, setStep] = useState("search");
-            const [youtubeUrl, setYoutubeUrl] = useState("");
-            const [isAnalyzing, setIsAnalyzing] = useState(false);
-            const [tracks, setTracks] = useState(mockTracks);
-            const [syncProgress, setSyncProgress] = useState(0);
-            const [isSyncing, setIsSyncing] = useState(false);
-
-            const handleAnalyze = () => {
-                if (!youtubeUrl) return;
-                setIsAnalyzing(true);
-                setTimeout(() => {
-                    setIsAnalyzing(false);
-                    setStep("select");
-                }, 2000);
-            };
-
-            const handleToggleTrack = (id) => {
-                setTracks(tracks.map((track) => track.id === id ? { ...track, selected: !track.selected } : track));
-            };
-
-            const handleSelectAll = () => {
-                const allSelected = tracks.every((t) => t.selected);
-                setTracks(tracks.map((track) => ({ ...track, selected: !allSelected })));
-            };
-
-            const handleSync = async () => {
-                setIsSyncing(true);
-                setSyncProgress(0);
-                
-                for (let i = 0; i <= 100; i += 5) {
-                    await new Promise((resolve) => setTimeout(resolve, 100));
-                    setSyncProgress(i);
-                }
-                setIsSyncing(false);
-                setStep("success");
-            };
-
-            const selectedCount = tracks.filter((t) => t.selected).length;
-
-            return (
-                <div className="min-h-screen bg-[#09090b] text-[#fafafa]">
-                    <header className="border-b border-zinc-800 bg-zinc-950/50 backdrop-blur-md sticky top-0 z-50">
-                        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <div className="w-10 h-10 rounded-xl bg-green-500 flex items-center justify-center shadow-lg shadow-green-500/20">
-                                    <i className="fa-solid fa-music text-black text-lg"></i>
-                                </div>
-                                <span className="text-xl font-bold tracking-tight">TubeToMusic</span>
-                            </div>
-                            <nav className="hidden md:flex items-center gap-6 text-sm text-zinc-400">
-                                <a href="#" className="hover:text-white transition-colors">How it works</a>
-                                <a href="#" className="hover:text-white transition-colors">Pricing</a>
-                                <a href="#" className="hover:text-white transition-colors">Support</a>
-                            </nav>
-                        </div>
-                    </header>
-
-                    <main className="container mx-auto px-4 py-8 md:py-16">
-                        <div className="flex items-center justify-center gap-2 mb-12">
-                            {["search", "select", "success"].map((s, i) => (
-                                <div key={s} className="flex items-center">
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 ${step === s || (step === "select" && i < 1) || (step === "success" && i < 2) ? "bg-green-500 text-black shadow-md shadow-green-500/20" : "bg-zinc-800 text-zinc-400"}`}>
-                                        {i + 1}
-                                    </div>
-                                    {i < 2 && <div className={`w-16 md:w-24 h-0.5 mx-2 transition-all duration-300 ${(step === "select" && i === 0) || (step === "success" && i <= 1) ? "bg-green-500" : "bg-zinc-800"}`} />}
-                                </div>
-                            ))}
-                        </div>
-
-                        {step === "search" && (
-                            <div className="transition-all duration-500 ease-out max-w-2xl mx-auto text-center animate-fadeIn">
-                                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/10 text-green-400 text-sm mb-6">
-                                    <i className="fa-solid fa-wand-magic-sparkles"></i> AI-Powered Music Detection
-                                </div>
-                                <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight">
-                                    Convert YouTube to <span className="text-green-500">Your Playlist</span>
-                                </h1>
-                                <p className="text-zinc-400 text-lg mb-8">
-                                    유튜브 영상이나 믹스 링크를 붙여넣으세요. AI가 트랙 리스트를 추출해 유튜브 뮤직 보관함으로 바로 전송해 드립니다.
-                                </p>
-                                <div className="flex flex-col sm:flex-row gap-3 max-w-xl mx-auto">
-                                    <div className="relative flex-1">
-                                        <i className="fa-brands fa-youtube absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 text-xl"></i>
-                                        <input type="url" placeholder="유튜브 링크를 여기에 붙여넣으세요..." value={youtubeUrl} onChange={(e) => setYoutubeUrl(e.target.value)} className="w-full pl-12 pr-4 h-14 bg-zinc-900 border border-zinc-800 rounded-xl text-white placeholder:text-zinc-500 focus:outline-none focus:border-green-500 transition-colors" />
-                                    </div>
-                                    <button onClick={handleAnalyze} disabled={!youtubeUrl || isAnalyzing} className="h-14 px-8 bg-green-500 hover:bg-green-400 disabled:bg-zinc-800 disabled:text-zinc-500 text-black font-bold rounded-xl transition-all flex items-center justify-center gap-2">
-                                        {isAnalyzing ? <><i className="fa-solid fa-spinner animate-spin"></i> Analyzing...</> : <><i className="fa-solid fa-magnifying-glass"></i> Analyze</>}
-                                    </button>
-                                </div>
-                                <div className="grid md:grid-cols-3 gap-6 mt-16 max-w-4xl mx-auto text-left">
-                                    <div className="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800/80"><i className="fa-solid fa-magnifying-glass text-xl text-green-500 mb-4 block"></i><h3 className="font-semibold mb-2">Smart Detection</h3><p className="text-sm text-zinc-400">오디오 지문 인식을 활용한 정밀한 곡명 탐지</p></div>
-                                    <div className="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800/80"><i className="fa-solid fa-list-music text-xl text-green-500 mb-4 block"></i><h3 className="font-semibold mb-2">Batch Import</h3><p className="text-sm text-zinc-400">긴 타임라인 영상에서도 한 번에 모든 곡 추출</p></div>
-                                    <div className="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800/80"><i className="fa-solid fa-rotate text-xl text-green-500 mb-4 block"></i><h3 className="font-semibold mb-2">One-Click Sync</h3><p className="text-sm text-zinc-400">유튜브 뮤직 라이브러리로 즉시 자동 스트리밍 연동</p></div>
-                                </div>
-                            </div>
-                        )}
-
-                        {step === "select" && (
-                            <div className="max-w-3xl mx-auto">
-                                <div className="text-center mb-8">
-                                    <h2 className="text-3xl font-bold mb-2">Tracks Found</h2>
-                                    <p className="text-zinc-400">영상 내에서 총 {tracks.length}개의 노래를 찾아냈습니다. 동기화할 곡들을 골라주세요.</p>
-                                </div>
-                                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-xl">
-                                    <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 bg-zinc-950/40">
-                                        <button onClick={handleSelectAll} className="flex items-center gap-3 text-sm text-zinc-400 hover:text-white transition-colors font-medium">
-                                            <input type="checkbox" checked={tracks.every((t) => t.selected)} onChange={handleSelectAll} className="w-4 h-4 rounded border-zinc-700 text-green-500 focus:ring-green-500 bg-zinc-800 accent-green-500" />
-                                            Select All
-                                        </button>
-                                        <span className="text-sm text-zinc-400 font-medium">{selectedCount} of {tracks.length} selected</span>
-                                    </div>
-                                    <div className="divide-y divide-zinc-800/40">
-                                        {tracks.map((track) => (
-                                            <div key={track.id} className={`flex items-center gap-4 px-6 py-4 hover:bg-zinc-800/30 transition-colors cursor-pointer ${track.selected ? "bg-green-500/5" : ""}`} onClick={() => handleToggleTrack(track.id)}>
-                                                <input type="checkbox" checked={track.selected} onChange={() => handleToggleTrack(track.id)} onClick={(e) => e.stopPropagation()} className="w-4 h-4 rounded border-zinc-700 text-green-500 focus:ring-green-500 bg-zinc-800 accent-green-500" />
-                                                <img src={track.cover} alt={track.title} className="w-12 h-12 rounded-lg object-cover border border-zinc-800" />
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="font-semibold truncate text-zinc-100">{track.title}</p>
-                                                    <p className="text-sm text-zinc-400 truncate mt-0.5">{track.artist}</p>
-                                                </div>
-                                                <div className="flex items-center gap-4 text-zinc-400">
-                                                    <span className="text-sm flex items-center gap-1.5"><i className="fa-regular fa-clock text-xs"></i> {track.duration}</span>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div className="mt-8 flex flex-col items-center gap-4">
-                                    {isSyncing ? (
-                                        <div className="w-full max-w-md bg-zinc-900 p-6 rounded-xl border border-zinc-800">
-                                            <div className="flex items-center justify-between mb-2 text-sm font-medium">
-                                                <span>Syncing to YouTube Music...</span>
-                                                <span className="text-green-400 font-bold">{syncProgress}%</span>
-                                            </div>
-                                            <div className="h-2.5 bg-zinc-800 rounded-full overflow-hidden">
-                                                <div className="h-full bg-green-500 rounded-full transition-all duration-200 ease-out shadow-[0_0_12px_rgba(34,197,94,0.4)]" style={{ width: `${syncProgress}%` }} />
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <button onClick={handleSync} disabled={selectedCount === 0} className="h-14 px-8 bg-green-500 hover:bg-green-400 disabled:bg-zinc-800 disabled:text-zinc-500 text-black font-bold rounded-xl transition-all flex items-center justify-center gap-2 text-base shadow-lg shadow-green-500/10">
-                                            <i className="fa-solid fa-arrows-rotate"></i> Sync {selectedCount} Tracks to YouTube Music
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-
-                        {step === "success" && (
-                            <div className="max-w-2xl mx-auto text-center animate-scaleUp">
-                                <div className="relative w-24 h-24 mx-auto mb-6 flex items-center justify-center">
-                                    <div className="absolute inset-0 bg-green-500/20 rounded-full animate-ping" />
-                                    <div className="relative w-24 h-24 bg-green-500 rounded-full flex items-center justify-center shadow-lg shadow-green-500/30">
-                                        <i className="fa-solid fa-circle-check text-black text-4xl"></i>
-                                    </div>
-                                </div>
-                                <h2 className="text-3xl font-bold mb-2 tracking-tight">Successfully Synced!</h2>
-                                <p className="text-zinc-400 mb-8">{selectedCount}개의 음악이 내 보관함에 정상 등록 완료되었습니다.</p>
-                                
-                                <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 text-left shadow-xl">
-                                    <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 mb-6">
-                                        <div className="w-32 h-32 rounded-2xl bg-gradient-to-br from-green-500 to-green-900 flex items-center justify-center shrink-0 shadow-lg shadow-green-500/10">
-                                            <i className="fa-solid fa-music text-black text-4xl"></i>
-                                        </div>
-                                        <div className="flex-1 text-center sm:text-left">
-                                            <p className="text-xs text-green-400 font-bold tracking-wider mb-1">NEW PLAYLIST</p>
-                                            <h3 className="text-2xl font-bold mb-2">YouTube Import</h3>
-                                            <div className="flex items-center justify-center sm:justify-start gap-3 text-sm text-zinc-400">
-                                                <span>{selectedCount} tracks</span>
-                                                <span>•</span>
-                                                <span>Created just now</span>
-                                            </div>
-                                            <div className="flex flex-wrap gap-3 mt-4 justify-center sm:justify-start">
-                                                <button className="px-5 py-2.5 bg-green-500 hover:bg-green-400 text-black font-bold rounded-xl transition-all flex items-center gap-2 text-sm"><i className="fa-solid fa-play"></i> Play Now</button>
-                                                <button className="px-5 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white font-medium rounded-xl border border-zinc-700 transition-all text-sm">Open in YouTube Music</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="border-t border-zinc-800/60 pt-4">
-                                        <p className="text-xs text-zinc-500 font-bold uppercase tracking-wider mb-3">Tracks in playlist</p>
-                                        <div className="space-y-1">
-                                            {tracks.filter((t) => t.selected).slice(0, 4).map((track, idx) => (
-                                                <div key={track.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-zinc-800/20 transition-colors">
-                                                    <span className="w-4 text-center text-xs text-zinc-500 font-semibold">{idx + 1}</span>
-                                                    <img src={track.cover} alt={track.title} className="w-9 h-9 rounded-md object-cover" />
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="font-medium text-sm text-zinc-200 truncate">{track.title}</p>
-                                                        <p className="text-xs text-zinc-400 truncate mt-0.5">{track.artist}</p>
-                                                    </div>
-                                                    <span className="text-xs text-zinc-500">{track.duration}</span>
-                                                </div>
-                                            ))}
-                                            {selectedCount > 4 && <p className="text-xs text-zinc-500 text-center pt-3 font-medium">+ {selectedCount - 4} more tracks</p>}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="mt-8">
-                                    <button onClick={() => { setStep("search"); setYoutubeUrl(""); setTracks(mockTracks); }} className="px-6 py-3 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-300 font-semibold rounded-xl transition-all">Convert Another Video</button>
-                                </div>
-                            </div>
-                        )}
-                    </main>
-
-                    <footer className="border-t border-zinc-900 mt-16 bg-zinc-950/20">
-                        <div className="container mx-auto px-4 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-zinc-500">
-                            <div className="flex items-center gap-2"><div className="w-6 h-6 rounded-md bg-green-500/20 flex items-center justify-center"><i className="fa-solid fa-music text-green-500 text-2xs"></i></div><span className="font-bold text-zinc-400">TubeToMusic</span></div>
-                            <p>© 2026 TubeToMusic. All rights reserved.</p>
-                        </div>
-                    </footer>
+      <!-- Step 3: Success -->
+      <div id="step-3" class="step-container step-hidden">
+        <div class="text-center mb-8">
+          <!-- Success Animation -->
+          <div class="w-24 h-24 mx-auto mb-6 relative">
+            <svg class="w-24 h-24" viewBox="0 0 52 52">
+              <circle class="checkmark-circle" cx="26" cy="26" r="24" fill="none" stroke="#1db954" stroke-width="3"/>
+              <path class="checkmark-check" fill="none" stroke="#1db954" stroke-width="3" d="M14 27l8 8 16-16"/>
+            </svg>
+          </div>
+          <h2 class="text-3xl font-bold text-foreground mb-2">Successfully Synced!</h2>
+          <p class="text-muted-foreground">Your playlist has been created on YouTube Music</p>
+        </div>
+        
+        <!-- Playlist Card -->
+        <div class="bg-card rounded-2xl border border-border overflow-hidden max-w-lg mx-auto">
+          <div class="bg-gradient-to-br from-primary/20 to-primary/5 p-6">
+            <div class="flex items-start gap-4">
+              <div class="w-20 h-20 bg-primary/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                <i data-lucide="list-music" class="w-10 h-10 text-primary"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <h3 class="font-bold text-xl text-foreground mb-1">My New Playlist</h3>
+                <p class="text-muted-foreground text-sm mb-3" id="playlist-count">6 tracks</p>
+                <div class="flex gap-2">
+                  <button class="btn-primary px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+                    <i data-lucide="play" class="w-4 h-4"></i>
+                    Play Now
+                  </button>
+                  <button class="btn-secondary px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+                    <i data-lucide="external-link" class="w-4 h-4"></i>
+                    Open
+                  </button>
                 </div>
-            );
-        }
+              </div>
+            </div>
+          </div>
+          
+          <!-- Mini Track List -->
+          <div id="success-tracks" class="divide-y divide-border">
+            <!-- Tracks will be inserted here -->
+          </div>
+        </div>
+        
+        <!-- Actions -->
+        <div class="flex justify-center gap-4 mt-8">
+          <button id="new-playlist-btn" class="btn-secondary px-6 py-3 rounded-xl font-medium flex items-center gap-2">
+            <i data-lucide="plus" class="w-5 h-5"></i>
+            Create New Playlist
+          </button>
+        </div>
+      </div>
+    </main>
+    
+    <!-- Footer -->
+    <footer class="border-t border-border mt-auto">
+      <div class="max-w-6xl mx-auto px-4 py-6 text-center text-sm text-muted-foreground">
+        <p>Built with Lucide Icons and Tailwind CSS</p>
+      </div>
+    </footer>
+  </div>
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<TubeToMusic />);
-    </script>
+  <script>
+    // Initialize Lucide icons
+    lucide.createIcons();
+    
+    // Mock track data
+    const mockTracks = [
+      { id: 1, title: "Blinding Lights", artist: "The Weeknd", duration: "3:20", cover: "https://picsum.photos/seed/track1/80/80" },
+      { id: 2, title: "Levitating", artist: "Dua Lipa", duration: "3:23", cover: "https://picsum.photos/seed/track2/80/80" },
+      { id: 3, title: "Save Your Tears", artist: "The Weeknd", duration: "3:35", cover: "https://picsum.photos/seed/track3/80/80" },
+      { id: 4, title: "Peaches", artist: "Justin Bieber", duration: "3:18", cover: "https://picsum.photos/seed/track4/80/80" },
+      { id: 5, title: "Good 4 U", artist: "Olivia Rodrigo", duration: "2:58", cover: "https://picsum.photos/seed/track5/80/80" },
+      { id: 6, title: "Stay", artist: "The Kid LAROI & Justin Bieber", duration: "2:21", cover: "https://picsum.photos/seed/track6/80/80" },
+    ];
+    
+    let selectedTracks = new Set();
+    let currentStep = 1;
+    
+    // DOM Elements
+    const youtubeUrlInput = document.getElementById('youtube-url');
+    const analyzeBtn = document.getElementById('analyze-btn');
+    const searchIcon = document.getElementById('search-icon');
+    const loadingIcon = document.getElementById('loading-icon');
+    const analyzeText = document.getElementById('analyze-text');
+    const selectAllCheckbox = document.getElementById('select-all');
+    const selectedCountEl = document.getElementById('selected-count');
+    const syncBtn = document.getElementById('sync-btn');
+    const syncIcon = document.getElementById('sync-icon');
+    const syncLoadingIcon = document.getElementById('sync-loading-icon');
+    const syncText = document.getElementById('sync-text');
+    const progressContainer = document.getElementById('progress-container');
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
+    const backBtn = document.getElementById('back-btn');
+    const newPlaylistBtn = document.getElementById('new-playlist-btn');
+    
+    // Step indicators
+    const step2Circle = document.getElementById('step-2-circle');
+    const step2Text = document.getElementById('step-2-text');
+    const step3Circle = document.getElementById('step-3-circle');
+    const step3Text = document.getElementById('step-3-text');
+    
+    // Render track list
+    function renderTracks() {
+      const trackList = document.getElementById('track-list');
+      trackList.innerHTML = mockTracks.map((track, index) => `
+        <div class="track-item flex items-center gap-4 px-6 py-4 transition-colors cursor-pointer" data-id="${track.id}">
+          <input type="checkbox" class="custom-checkbox track-checkbox" data-id="${track.id}">
+          <div class="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-muted">
+            <img src="${track.cover}" alt="${track.title}" class="w-full h-full object-cover">
+            <div class="play-overlay absolute inset-0 bg-black/50 flex items-center justify-center">
+              <i data-lucide="play" class="w-5 h-5 text-white"></i>
+            </div>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="font-medium text-foreground truncate">${track.title}</p>
+            <p class="text-sm text-muted-foreground truncate">${track.artist}</p>
+          </div>
+          <span class="text-sm text-muted-foreground">${track.duration}</span>
+        </div>
+      `).join('');
+      
+      // Reinitialize icons for dynamically added content
+      lucide.createIcons();
+      
+      // Add event listeners to checkboxes
+      document.querySelectorAll('.track-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', (e) => {
+          const id = parseInt(e.target.dataset.id);
+          if (e.target.checked) {
+            selectedTracks.add(id);
+          } else {
+            selectedTracks.delete(id);
+          }
+          updateSelectedCount();
+        });
+      });
+      
+      // Add click listeners to track items
+      document.querySelectorAll('.track-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+          if (e.target.type !== 'checkbox') {
+            const checkbox = item.querySelector('.track-checkbox');
+            checkbox.checked = !checkbox.checked;
+            checkbox.dispatchEvent(new Event('change'));
+          }
+        });
+      });
+    }
+    
+    // Update selected count
+    function updateSelectedCount() {
+      selectedCountEl.textContent = `${selectedTracks.size} of ${mockTracks.length} selected`;
+      syncBtn.disabled = selectedTracks.size === 0;
+      selectAllCheckbox.checked = selectedTracks.size === mockTracks.length;
+      selectAllCheckbox.indeterminate = selectedTracks.size > 0 && selectedTracks.size < mockTracks.length;
+    }
+    
+    // Switch step
+    function switchStep(step) {
+      currentStep = step;
+      
+      // Hide all steps
+      document.querySelectorAll('.step-container').forEach(el => {
+        el.classList.remove('step-visible');
+        el.classList.add('step-hidden');
+      });
+      
+      // Show current step
+      const currentStepEl = document.getElementById(`step-${step}`);
+      currentStepEl.classList.remove('step-hidden');
+      currentStepEl.classList.add('step-visible');
+      
+      // Update indicators
+      updateStepIndicators(step);
+    }
+    
+    // Update step indicators
+    function updateStepIndicators(step) {
+      // Step 2
+      if (step >= 2) {
+        step2Circle.classList.remove('bg-muted', 'text-muted-foreground');
+        step2Circle.classList.add('bg-primary', 'text-primary-foreground');
+        step2Text.classList.remove('text-muted-foreground');
+        step2Text.classList.add('text-foreground');
+      } else {
+        step2Circle.classList.add('bg-muted', 'text-muted-foreground');
+        step2Circle.classList.remove('bg-primary', 'text-primary-foreground');
+        step2Text.classList.add('text-muted-foreground');
+        step2Text.classList.remove('text-foreground');
+      }
+      
+      // Step 3
+      if (step >= 3) {
+        step3Circle.classList.remove('bg-muted', 'text-muted-foreground');
+        step3Circle.classList.add('bg-primary', 'text-primary-foreground');
+        step3Text.classList.remove('text-muted-foreground');
+        step3Text.classList.add('text-foreground');
+      } else {
+        step3Circle.classList.add('bg-muted', 'text-muted-foreground');
+        step3Circle.classList.remove('bg-primary', 'text-primary-foreground');
+        step3Text.classList.add('text-muted-foreground');
+        step3Text.classList.remove('text-foreground');
+      }
+    }
+    
+    // Render success tracks
+    function renderSuccessTracks() {
+      const successTracks = document.getElementById('success-tracks');
+      const selectedTrackData = mockTracks.filter(t => selectedTracks.has(t.id));
+      
+      document.getElementById('playlist-count').textContent = `${selectedTrackData.length} tracks`;
+      
+      successTracks.innerHTML = selectedTrackData.slice(0, 4).map((track, index) => `
+        <div class="flex items-center gap-3 px-6 py-3">
+          <span class="text-sm text-muted-foreground w-5">${index + 1}</span>
+          <div class="w-10 h-10 rounded overflow-hidden flex-shrink-0 bg-muted">
+            <img src="${track.cover}" alt="${track.title}" class="w-full h-full object-cover">
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="font-medium text-foreground text-sm truncate">${track.title}</p>
+            <p class="text-xs text-muted-foreground truncate">${track.artist}</p>
+          </div>
+          <span class="text-xs text-muted-foreground">${track.duration}</span>
+        </div>
+      `).join('');
+      
+      if (selectedTrackData.length > 4) {
+        successTracks.innerHTML += `
+          <div class="px-6 py-3 text-center text-sm text-muted-foreground">
+            + ${selectedTrackData.length - 4} more tracks
+          </div>
+        `;
+      }
+    }
+    
+    // Event Listeners
+    analyzeBtn.addEventListener('click', async () => {
+      const url = youtubeUrlInput.value.trim();
+      if (!url) {
+        youtubeUrlInput.focus();
+        return;
+      }
+      
+      // Show loading state
+      searchIcon.classList.add('hidden');
+      loadingIcon.classList.remove('hidden');
+      analyzeText.textContent = 'Analyzing...';
+      analyzeBtn.disabled = true;
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Reset button
+      searchIcon.classList.remove('hidden');
+      loadingIcon.classList.add('hidden');
+      analyzeText.textContent = 'Analyze';
+      analyzeBtn.disabled = false;
+      
+      // Render tracks and switch to step 2
+      renderTracks();
+      switchStep(2);
+    });
+    
+    selectAllCheckbox.addEventListener('change', (e) => {
+      const checkboxes = document.querySelectorAll('.track-checkbox');
+      checkboxes.forEach(checkbox => {
+        checkbox.checked = e.target.checked;
+        const id = parseInt(checkbox.dataset.id);
+        if (e.target.checked) {
+          selectedTracks.add(id);
+        } else {
+          selectedTracks.delete(id);
+        }
+      });
+      updateSelectedCount();
+    });
+    
+    syncBtn.addEventListener('click', async () => {
+      // Show loading state
+      syncIcon.classList.add('hidden');
+      syncLoadingIcon.classList.remove('hidden');
+      syncText.textContent = 'Syncing...';
+      syncBtn.disabled = true;
+      
+      // Show progress bar
+      progressContainer.classList.remove('hidden');
+      
+      // Animate progress bar
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += Math.random() * 15;
+        if (progress >= 100) {
+          progress = 100;
+          clearInterval(interval);
+        }
+        progressBar.style.width = `${progress}%`;
+        progressText.textContent = `Syncing tracks... ${Math.round(progress)}%`;
+      }, 200);
+      
+      // Simulate sync
+      await new Promise(resolve => setTimeout(resolve, 2500));
+      
+      // Switch to success screen
+      renderSuccessTracks();
+      switchStep(3);
+      
+      // Reset sync button for potential reuse
+      syncIcon.classList.remove('hidden');
+      syncLoadingIcon.classList.add('hidden');
+      syncText.textContent = 'Sync to YouTube Music';
+      syncBtn.disabled = false;
+      progressContainer.classList.add('hidden');
+      progressBar.style.width = '0%';
+    });
+    
+    backBtn.addEventListener('click', () => {
+      switchStep(1);
+    });
+    
+    newPlaylistBtn.addEventListener('click', () => {
+      // Reset state
+      selectedTracks.clear();
+      youtubeUrlInput.value = '';
+      switchStep(1);
+    });
+    
+    // Allow Enter key to trigger analyze
+    youtubeUrlInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        analyzeBtn.click();
+      }
+    });
+  </script>
 </body>
 </html>
